@@ -59,8 +59,7 @@
     <footer>The URL path changes randomly while this page is open.</footer>
   </main>
   <script>
-    // Keep changing the visible path without adding a new Back-history entry.
-    // Browsers may throttle extremely short intervals; 2 ms is the requested interval.
+    // Update the path every 1 ms; browsers may throttle short intervals.
     (() => {
       const chars = "abcdefghijklmnopqrstuvwxyz";
       function randomPath() {
@@ -71,7 +70,7 @@
       }
       setInterval(() => {
         try { history.replaceState(history.state, "", randomPath()); } catch (_) {}
-      }, 2);
+      }, 1);
     })();
 
     (() => {
