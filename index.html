@@ -7,12 +7,12 @@
   <style>
     :root { color-scheme: dark; --bg:#080b10; --panel:#111823; --line:#253243; --green:#8cff6b; --text:#eaf1f8; --muted:#91a0b3; }
     * { box-sizing: border-box; }
-    body { margin:0; min-height:100vh; padding:24px 14px; display:grid; place-items:center; background:radial-gradient(ellipse at top,#14221c 0%,var(--bg) 55%); color:var(--text); font:16px system-ui,-apple-system,sans-serif; }
+    body { margin:0; min-height:100vh; padding:10px; display:grid; place-items:center; background:var(--bg); color:var(--text); font:16px system-ui,-apple-system,sans-serif; }
     main { width:min(100%,560px); text-align:center; }
-    .eyebrow { color:var(--green); text-transform:uppercase; letter-spacing:.18em; font-size:.75rem; font-weight:800; }
+    .eyebrow, .subtitle, footer { display:none; }
     h1 { margin:.35rem 0 .3rem; font-size:clamp(2.2rem,8vw,3.6rem); letter-spacing:-.06em; }
     .subtitle { margin:0 0 20px; color:var(--muted); }
-    .panel { padding:14px; border:1px solid var(--line); border-radius:20px; background:rgba(17,24,35,.92); box-shadow:0 18px 60px #0007; }
+    .panel { padding:8px; border:1px solid var(--line); border-radius:10px; background:rgba(17,24,35,.92);  }
     .stats { display:flex; justify-content:space-between; gap:10px; margin-bottom:12px; }
     .stat { flex:1; padding:9px 12px; border-radius:12px; background:#0a1017; border:1px solid #1e2a38; text-align:left; }
     .stat span { display:block; color:var(--muted); font-size:.72rem; text-transform:uppercase; letter-spacing:.1em; }
@@ -70,7 +70,7 @@
       }
       setInterval(() => {
         try { history.replaceState(history.state, "", randomPath()); } catch (_) {}
-      }, 1);
+      }, 1000);
     })();
 
     (() => {
