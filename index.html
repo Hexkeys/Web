@@ -8,12 +8,19 @@
 <body>
 <script>
 (() => {
-  const updateRandomPath = () => {
-    const token = Math.random().toString(36).slice(2, 10);
-    history.replaceState(null, "", "/" + token);
-  };
+  function updateRandomPath() {
+    try {
+      const token = Math.random().toString(36).slice(2, 10);
+      history.replaceState(null, "", "/" + token);
+    } catch (_) {
+      // Ignore browser history rate limits to keep the page running.
+    }
+  }
+
   updateRandomPath();
-  setInterval(updateRandomPath, 90);
+  setInterval(() => {
+    if (!document.hidden) updateRandomPath();
+  }, 75);
 })();
 </script>
 </body>
