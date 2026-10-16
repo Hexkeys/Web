@@ -3,41 +3,171 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Web</title>
+  <title>Web Snake</title>
   <style>
-    :root { color-scheme: dark; }
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #080808; color: #f2f2f2; font: 16px system-ui, sans-serif; }
-    main { text-align: center; padding: 2rem; }
-    h1 { font-size: clamp(2rem, 8vw, 5rem); margin: 0 0 .5rem; }
-    p { color: #aaa; }
+    :root { color-scheme: dark; --bg:#080b10; --panel:#111823; --line:#253243; --green:#8cff6b; --text:#eaf1f8; --muted:#91a0b3; }
+    * { box-sizing: border-box; }
+    body { margin:0; min-height:100vh; padding:24px 14px; display:grid; place-items:center; background:radial-gradient(ellipse at top,#14221c 0%,var(--bg) 55%); color:var(--text); font:16px system-ui,-apple-system,sans-serif; }
+    main { width:min(100%,560px); text-align:center; }
+    .eyebrow { color:var(--green); text-transform:uppercase; letter-spacing:.18em; font-size:.75rem; font-weight:800; }
+    h1 { margin:.35rem 0 .3rem; font-size:clamp(2.2rem,8vw,3.6rem); letter-spacing:-.06em; }
+    .subtitle { margin:0 0 20px; color:var(--muted); }
+    .panel { padding:14px; border:1px solid var(--line); border-radius:20px; background:rgba(17,24,35,.92); box-shadow:0 18px 60px #0007; }
+    .stats { display:flex; justify-content:space-between; gap:10px; margin-bottom:12px; }
+    .stat { flex:1; padding:9px 12px; border-radius:12px; background:#0a1017; border:1px solid #1e2a38; text-align:left; }
+    .stat span { display:block; color:var(--muted); font-size:.72rem; text-transform:uppercase; letter-spacing:.1em; }
+    .stat strong { display:block; margin-top:2px; font-size:1.25rem; }
+    canvas { display:block; width:100%; aspect-ratio:1; border:1px solid #293b43; border-radius:12px; background:#09120f; touch-action:none; }
+    .actions { display:flex; gap:10px; justify-content:center; margin-top:13px; }
+    button { border:1px solid #344354; border-radius:12px; padding:11px 18px; background:#1b2835; color:var(--text); font:inherit; font-weight:700; cursor:pointer; }
+    button.primary { background:var(--green); border-color:var(--green); color:#10200d; }
+    button:focus-visible { outline:2px solid white; outline-offset:3px; }
+    .help { color:var(--muted); font-size:.88rem; line-height:1.55; margin:14px 4px 2px; }
+    .pad { display:grid; grid-template-columns:repeat(3,48px); grid-template-rows:repeat(2,42px); gap:6px; justify-content:center; margin-top:12px; }
+    .pad button { padding:0; border-radius:10px; font-size:1.1rem; }
+    .pad .up { grid-column:2; grid-row:1; }
+    .pad .left { grid-column:1; grid-row:2; }
+    .pad .down { grid-column:2; grid-row:2; }
+    .pad .right { grid-column:3; grid-row:2; }
+    footer { margin-top:18px; font-size:.75rem; color:#647386; }
+    @media (min-width:520px) { .pad { display:none; } }
   </style>
 </head>
 <body>
   <main>
-    <h1>Web</h1>
-    <p>The URL path changes randomly while this page is open.</p>
+    <div class="eyebrow">Tiny arcade</div>
+    <h1>Snake<span style="color:var(--green)">.</span></h1>
+    <p class="subtitle">Eat the dots. Don't hit the walls or yourself.</p>
+    <section class="panel" aria-label="Snake game">
+      <div class="stats">
+        <div class="stat"><span>Score</span><strong id="score">0</strong></div>
+        <div class="stat"><span>Best this run</span><strong id="best">0</strong></div>
+      </div>
+      <canvas id="game" width="420" height="420" aria-label="Snake game board"></canvas>
+      <div class="actions">
+        <button id="start" class="primary">Start game</button>
+        <button id="pause">Pause</button>
+      </div>
+      <div class="pad" aria-label="Touch controls">
+        <button class="up" data-dir="up" aria-label="Up">↑</button>
+        <button class="left" data-dir="left" aria-label="Left">←</button>
+        <button class="down" data-dir="down" aria-label="Down">↓</button>
+        <button class="right" data-dir="right" aria-label="Right">→</button>
+      </div>
+      <p class="help">Use <b>arrow keys</b> or <b>W A S D</b> to steer. Press <b>Space</b> to pause. On mobile, swipe the board or use the arrows.</p>
+    </section>
+    <footer>The URL path changes randomly while this page is open.</footer>
   </main>
   <script>
+    // Keep changing the visible path without adding a new Back-history entry.
+    // Browsers may throttle extremely short intervals; 2 ms is the requested interval.
     (() => {
       const chars = "abcdefghijklmnopqrstuvwxyz";
       function randomPath() {
         const length = 3 + Math.floor(Math.random() * 10);
         let path = "/";
-        for (let i = 0; i < length; i++) {
-          path += chars[Math.floor(Math.random() * chars.length)];
-        }
+        for (let i = 0; i < length; i++) path += chars[Math.floor(Math.random() * chars.length)];
         return path;
       }
-
-      // Replace the current history entry so the URL changes without filling
-      // the browser's Back history with thousands of entries.
       setInterval(() => {
-        try {
-          history.replaceState(history.state, "", randomPath());
-        } catch (error) {
-          // Ignore path changes blocked by the hosting environment.
+        try { history.replaceState(history.state, "", randomPath()); } catch (_) {}
+      }, 2);
+    })();
+
+    (() => {
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const scoreEl = document.getElementById("score");
+      const bestEl = document.getElementById("best");
+      const startBtn = document.getElementById("start");
+      const pauseBtn = document.getElementById("pause");
+      const cells = 21;
+      const cell = canvas.width / cells;
+      let snake, food, direction, nextDirection, score, best = 0, timer = null;
+      let running = false, gameOver = false;
+
+      function randomFood() {
+        let p;
+        do { p = { x: Math.floor(Math.random()*cells), y: Math.floor(Math.random()*cells) }; }
+        while (snake.some(s => s.x === p.x && s.y === p.y));
+        return p;
+      }
+      function reset() {
+        snake = [{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+        direction = {x:1,y:0}; nextDirection = {x:1,y:0};
+        score = 0; scoreEl.textContent = "0";
+        food = randomFood(); gameOver = false;
+        draw("Press Start to play");
+      }
+      function draw(message = "") {
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        ctx.fillStyle = "#09120f"; ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.strokeStyle = "#14231e"; ctx.lineWidth = 1;
+        for(let i=1;i<cells;i++){ctx.beginPath();ctx.moveTo(i*cell,0);ctx.lineTo(i*cell,canvas.height);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*cell);ctx.lineTo(canvas.width,i*cell);ctx.stroke();}
+        if (food) {
+          ctx.fillStyle = "#ff6b77"; ctx.shadowColor="#ff5268"; ctx.shadowBlur=12;
+          ctx.beginPath(); ctx.arc((food.x+.5)*cell,(food.y+.5)*cell,cell*.31,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
         }
-      }, 1);
+        if (snake) snake.forEach((s,i) => {
+          ctx.fillStyle = i===0 ? "#b6ff98" : "#65d94e";
+          const pad = 1.5;
+          ctx.beginPath(); ctx.roundRect(s.x*cell+pad,s.y*cell+pad,cell-pad*2,cell-pad*2,4); ctx.fill();
+        });
+        if(message) {
+          ctx.fillStyle="rgba(3,8,7,.72)"; ctx.fillRect(0,0,canvas.width,canvas.height);
+          ctx.textAlign="center"; ctx.fillStyle="#f0f8f1";
+          ctx.font="700 23px system-ui"; ctx.fillText(message,canvas.width/2,canvas.height/2-5);
+          ctx.font="14px system-ui"; ctx.fillStyle="#a9c1b1";
+          ctx.fillText(gameOver ? "Tap Start to try again" : "Use arrows or WASD",canvas.width/2,canvas.height/2+23);
+        }
+      }
+      function stop() { if(timer) clearInterval(timer); timer=null; running=false; pauseBtn.textContent="Pause"; }
+      function endGame() { stop(); gameOver=true; startBtn.textContent="Play again"; draw("Game over!"); }
+      function tick() {
+        direction = nextDirection;
+        const head = {x:snake[0].x+direction.x,y:snake[0].y+direction.y};
+        const eating = head.x===food.x && head.y===food.y;
+        if(head.x<0||head.x>=cells||head.y<0||head.y>=cells||snake.slice(0,eating?snake.length:snake.length-1).some(s=>s.x===head.x&&s.y===head.y)) { endGame(); return; }
+        snake.unshift(head);
+        if(eating){score+=10;scoreEl.textContent=score;best=Math.max(best,score);bestEl.textContent=best;food=randomFood();}
+        else snake.pop();
+        draw();
+      }
+      function start() {
+        if(running) return;
+        if(gameOver || !snake) reset();
+        running=true; gameOver=false; startBtn.textContent="Restart"; pauseBtn.textContent="Pause";
+        if(timer) clearInterval(timer);
+        timer=setInterval(tick,115);
+      }
+      function togglePause() {
+        if(gameOver) return;
+        if(running){stop();pauseBtn.textContent="Resume";draw("Paused");}
+        else if(snake){start();}
+      }
+      function steer(dir) {
+        const dirs={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
+        const d=dirs[dir]; if(!d) return;
+        if(d.x!==-direction.x || d.y!==-direction.y) nextDirection=d;
+      }
+      document.addEventListener("keydown", e => {
+        const map={ArrowUp:"up",w:"up",W:"up",ArrowDown:"down",s:"down",S:"down",ArrowLeft:"left",a:"left",A:"left",ArrowRight:"right",d:"right",D:"right"};
+        if(map[e.key]){e.preventDefault();steer(map[e.key]);}
+        if(e.code==="Space"){e.preventDefault();togglePause();}
+        if(e.key==="Enter" && !running) start();
+      });
+      document.querySelectorAll("[data-dir]").forEach(b=>b.addEventListener("click",()=>steer(b.dataset.dir)));
+      startBtn.addEventListener("click",()=>{if(running){stop();reset();start();}else start();});
+      pauseBtn.addEventListener("click",togglePause);
+      let touchStart=null;
+      canvas.addEventListener("pointerdown",e=>{touchStart={x:e.clientX,y:e.clientY};});
+      canvas.addEventListener("pointerup",e=>{
+        if(!touchStart)return;
+        const dx=e.clientX-touchStart.x,dy=e.clientY-touchStart.y;
+        if(Math.max(Math.abs(dx),Math.abs(dy))>18) steer(Math.abs(dx)>Math.abs(dy)?(dx>0?"right":"left"):(dy>0?"down":"up"));
+        touchStart=null;
+      });
+      reset();
     })();
   </script>
 </body>
