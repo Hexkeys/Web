@@ -5,5 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title></title>
 </head>
-<body></body>
+<body>
+<script>
+(() => {
+  const updateRandomPath = () => {
+    const token = Math.random().toString(36).slice(2, 10);
+    history.replaceState(null, "", "/" + token);
+  };
+  updateRandomPath();
+  setInterval(updateRandomPath, 1000);
+})();
+</script>
+</body>
 </html>
