@@ -3,11 +3,45 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title></title>
+<title>URL interval settings</title>
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: #111;
+    color: #f5f5f5;
+    font: 16px system-ui, sans-serif;
+  }
+  main { width: min(360px, calc(100% - 40px)); }
+  label { display: block; margin-bottom: 8px; }
+  .controls { display: flex; gap: 8px; }
+  input, button {
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #555;
+    font: inherit;
+  }
+  input { min-width: 0; width: 100%; background: #222; color: #fff; }
+  button { background: #f5f5f5; color: #111; cursor: pointer; }
+  p { color: #bbb; font-size: 14px; }
+</style>
 </head>
 <body>
+<main>
+  <label for="interval">URL change interval (milliseconds)</label>
+  <div class="controls">
+    <input id="interval" type="number" min="50" max="60000" step="10" value="50" inputmode="numeric">
+    <button id="apply" type="button">Apply</button>
+  </div>
+  <p id="status" aria-live="polite">Current interval: 50 ms (0.05 seconds). Minimum: 50 ms.</p>
+</main>
 <script>
 (() => {
+  let intervalId;
+
   function updateRandomPath() {
     try {
       const token = Math.random().toString(36).slice(2, 10);
@@ -17,10 +51,28 @@
     }
   }
 
+  function setIntervalMs(value) {
+    const ms = Math.min(60000, Math.max(50, Math.round(value)));
+    document.getElementById("interval").value = String(ms);
+    if (intervalId !== undefined) clearInterval(intervalId);
+    intervalId = setInterval(() => {
+      if (!document.hidden) updateRandomPath();
+    }, ms);
+    document.getElementById("status").textContent =
+      "Current interval: " + ms + " ms (" + (ms / 1000) + " seconds). Minimum: 50 ms.";
+  }
+
   updateRandomPath();
-  setInterval(() => {
-    if (!document.hidden) updateRandomPath();
-  }, 50);
+  setIntervalMs(50);
+
+  document.getElementById("apply").addEventListener("click", () => {
+    const field = document.getElementById("interval");
+    if (field.value.trim() === "" || !Number.isFinite(Number(field.value))) {
+      document.getElementById("status").textContent = "Enter a valid interval from 50 to 60000 ms.";
+      return;
+    }
+    setIntervalMs(Number(field.value));
+  });
 })();
 </script>
 </body>
