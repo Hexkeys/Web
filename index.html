@@ -40,41 +40,53 @@
 </main>
 <script>
 (() => {
-  let intervalId;
-  let pathIndex = 0;
+  let timerId;
+  let intervalMs = 50;
+  let retryDelay = 50;
+  let path = "aaa";
 
-  function lettersFor(index) {
-    let n = index;
-    let result = "";
-    do {
-      result = String.fromCharCode(97 + (n % 26)) + result;
-      n = Math.floor(n / 26) - 1;
-    } while (n >= 0);
-    return result.padStart(3, "a");
+  function nextPath(value) {
+    const chars = value.split("");
+    for (let i = chars.length - 1; i >= 0; i--) {
+      if (chars[i] !== "z") {
+        chars[i] = String.fromCharCode(chars[i].charCodeAt(0) + 1);
+        return chars.join("");
+      }
+      chars[i] = "a";
+    }
+    return "a" + chars.join("");
   }
 
-  function updatePath() {
-    try {
-      history.replaceState(null, "", "/" + lettersFor(pathIndex));
-      pathIndex += 1;
-    } catch (_) {
-      // Ignore browser history errors and keep the page running.
+  function tick() {
+    if (document.hidden) {
+      timerId = setTimeout(tick, intervalMs);
+      return;
     }
+
+    try {
+      history.replaceState(null, "", "/" + path);
+      path = nextPath(path);
+      retryDelay = intervalMs;
+    } catch (_) {
+      // Back off when the browser rate-limits history updates.
+      retryDelay = Math.min(1000, Math.max(intervalMs, retryDelay * 2));
+    }
+
+    timerId = setTimeout(tick, retryDelay);
   }
 
   function setIntervalMs(value) {
-    const ms = Math.min(60000, Math.max(50, Math.round(value)));
-    document.getElementById("interval").value = String(ms);
-    if (intervalId !== undefined) clearInterval(intervalId);
-    intervalId = setInterval(() => {
-      if (!document.hidden) updatePath();
-    }, ms);
+    intervalMs = Math.min(60000, Math.max(50, Math.round(value)));
+    retryDelay = intervalMs;
+    document.getElementById("interval").value = String(intervalMs);
+    clearTimeout(timerId);
     document.getElementById("status").textContent =
-      "Current interval: " + ms + " ms (" + (ms / 1000) + " seconds). Minimum: 50 ms.";
+      "Current interval: " + intervalMs + " ms (" + (intervalMs / 1000) +
+      " seconds). Browser limits may occasionally slow updates.";
+    timerId = setTimeout(tick, intervalMs);
   }
 
-  updatePath();
-  setIntervalMs(50);
+  timerId = setTimeout(tick, intervalMs);
 
   document.getElementById("apply").addEventListener("click", () => {
     const field = document.getElementById("interval");
