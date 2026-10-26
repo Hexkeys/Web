@@ -36,18 +36,29 @@
     <input id="interval" type="number" min="50" max="60000" step="10" value="50" inputmode="numeric">
     <button id="apply" type="button">Apply</button>
   </div>
-  <p id="status" aria-live="polite">Current interval: 5 ms (0.05 seconds). Minimum: 5 ms.</p>
+  <p id="status" aria-live="polite">Current interval: 50 ms (0.05 seconds). Minimum: 50 ms.</p>
 </main>
 <script>
 (() => {
   let intervalId;
+  let pathIndex = 0;
 
-  function updateRandomPath() {
+  function lettersFor(index) {
+    let n = index;
+    let result = "";
+    do {
+      result = String.fromCharCode(97 + (n % 26)) + result;
+      n = Math.floor(n / 26) - 1;
+    } while (n >= 0);
+    return result.padStart(3, "a");
+  }
+
+  function updatePath() {
     try {
-      const token = Math.random().toString(36).slice(2, 10);
-      history.replaceState(null, "", "/" + token);
+      history.replaceState(null, "", "/" + lettersFor(pathIndex));
+      pathIndex += 1;
     } catch (_) {
-      // Ignore browser history rate limits to keep the page running.
+      // Ignore browser history errors and keep the page running.
     }
   }
 
@@ -56,13 +67,13 @@
     document.getElementById("interval").value = String(ms);
     if (intervalId !== undefined) clearInterval(intervalId);
     intervalId = setInterval(() => {
-      if (!document.hidden) updateRandomPath();
+      if (!document.hidden) updatePath();
     }, ms);
     document.getElementById("status").textContent =
       "Current interval: " + ms + " ms (" + (ms / 1000) + " seconds). Minimum: 50 ms.";
   }
 
-  updateRandomPath();
+  updatePath();
   setIntervalMs(50);
 
   document.getElementById("apply").addEventListener("click", () => {
