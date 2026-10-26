@@ -34,16 +34,16 @@
 <main>
   <label for="interval">History entry interval (milliseconds)</label>
   <div class="controls">
-    <input id="interval" type="number" min="1000" max="60000" step="1000" value="1000" inputmode="numeric">
+    <input id="interval" type="number" min="25" max="60000" step="25" value="25" inputmode="numeric">
     <button id="apply" type="button">Apply</button>
   </div>
   <button class="manual" id="manual" type="button">Add history entry now</button>
-  <p id="status" aria-live="polite">Current interval: 1000 ms (1 second). Each change adds a browser history entry without reloading the page.</p>
+  <p id="status" aria-live="polite">Current interval: 25 ms (0.025 seconds). Browsers may throttle rapid history updates.</p>
 </main>
 <script>
 (() => {
   let timerId = null;
-  let intervalMs = 1000;
+  let intervalMs = 25;
   let retryDelay = intervalMs;
   let path = "aaa";
 
@@ -88,19 +88,19 @@
   }
 
   function setIntervalMs(value) {
-    intervalMs = Math.min(60000, Math.max(1000, Math.round(value)));
+    intervalMs = Math.min(60000, Math.max(25, Math.round(value)));
     retryDelay = intervalMs;
     document.getElementById("interval").value = String(intervalMs);
     document.getElementById("status").textContent =
       "Current interval: " + intervalMs + " ms (" + (intervalMs / 1000) +
-      " seconds). Each change adds a history entry without reloading.";
+      " seconds). Browsers may throttle rapid history updates.";
     schedule(intervalMs);
   }
 
   document.getElementById("apply").addEventListener("click", () => {
     const field = document.getElementById("interval");
     if (field.value.trim() === "" || !Number.isFinite(Number(field.value))) {
-      document.getElementById("status").textContent = "Enter a valid interval from 1000 to 60000 ms.";
+      document.getElementById("status").textContent = "Enter a valid interval from 25 to 60000 ms.";
       return;
     }
     setIntervalMs(Number(field.value));
