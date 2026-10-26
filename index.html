@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>URL interval settings</title>
+<title>URL history settings</title>
 <style>
   body {
     margin: 0;
@@ -32,18 +32,18 @@
 </head>
 <body>
 <main>
-  <label for="interval">URL change interval (milliseconds)</label>
+  <label for="interval">History entry interval (milliseconds)</label>
   <div class="controls">
-    <input id="interval" type="number" min="50" max="60000" step="10" value="50" inputmode="numeric">
+    <input id="interval" type="number" min="1000" max="60000" step="1000" value="1000" inputmode="numeric">
     <button id="apply" type="button">Apply</button>
   </div>
-  <button class="manual" id="manual" type="button">Change URL now</button>
-  <p id="status" aria-live="polite">Current interval: 50 ms (0.05 seconds). Minimum: 50 ms. Browser limits can slow updates.</p>
+  <button class="manual" id="manual" type="button">Add history entry now</button>
+  <p id="status" aria-live="polite">Current interval: 1000 ms (1 second). Each change adds a browser history entry without reloading the page.</p>
 </main>
 <script>
 (() => {
   let timerId = null;
-  let intervalMs = 50;
+  let intervalMs = 1000;
   let retryDelay = intervalMs;
   let path = "aaa";
 
@@ -59,16 +59,17 @@
     return "a" + chars.join("");
   }
 
-  function changePath() {
+  function addHistoryEntry() {
     try {
-      history.replaceState(null, "", "/" + path);
-      const changedTo = path;
+      const entry = path;
+      const url = new URL(window.location.href);
+      url.searchParams.set("p", entry);
+      history.pushState({ sequence: entry }, "", url.pathname + url.search + url.hash);
       path = nextPath(path);
       retryDelay = intervalMs;
-      return changedTo;
+      return entry;
     } catch (_) {
-      // Back off if the browser rate-limits history updates.
-      retryDelay = Math.min(5000, Math.max(intervalMs, retryDelay * 2));
+      retryDelay = Math.min(10000, Math.max(intervalMs, retryDelay * 2));
       return null;
     }
   }
@@ -82,34 +83,34 @@
   function tick() {
     timerId = null;
     if (document.hidden) return;
-    changePath();
+    addHistoryEntry();
     schedule(retryDelay);
   }
 
   function setIntervalMs(value) {
-    intervalMs = Math.min(60000, Math.max(50, Math.round(value)));
+    intervalMs = Math.min(60000, Math.max(1000, Math.round(value)));
     retryDelay = intervalMs;
     document.getElementById("interval").value = String(intervalMs);
     document.getElementById("status").textContent =
       "Current interval: " + intervalMs + " ms (" + (intervalMs / 1000) +
-      " seconds). Browser limits can slow updates.";
+      " seconds). Each change adds a history entry without reloading.";
     schedule(intervalMs);
   }
 
   document.getElementById("apply").addEventListener("click", () => {
     const field = document.getElementById("interval");
     if (field.value.trim() === "" || !Number.isFinite(Number(field.value))) {
-      document.getElementById("status").textContent = "Enter a valid interval from 50 to 60000 ms.";
+      document.getElementById("status").textContent = "Enter a valid interval from 1000 to 60000 ms.";
       return;
     }
     setIntervalMs(Number(field.value));
   });
 
   document.getElementById("manual").addEventListener("click", () => {
-    const changedTo = changePath();
-    document.getElementById("status").textContent = changedTo
-      ? "Manually changed URL to /" + changedTo + ". Automatic updates are still enabled."
-      : "The browser blocked this URL change. Try again in a moment.";
+    const entry = addHistoryEntry();
+    document.getElementById("status").textContent = entry
+      ? "Added history entry ?p=" + entry + ". Automatic updates are still enabled."
+      : "The browser blocked this history entry. Try again in a moment.";
   });
 
   document.addEventListener("visibilitychange", () => {
