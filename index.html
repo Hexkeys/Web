@@ -34,16 +34,16 @@
 <main>
   <label for="interval">URL change interval (milliseconds)</label>
   <div class="controls">
-    <input id="interval" type="number" min="250" max="60000" step="250" value="1000" inputmode="numeric">
+    <input id="interval" type="number" min="50" max="60000" step="10" value="50" inputmode="numeric">
     <button id="apply" type="button">Apply</button>
   </div>
   <button class="manual" id="manual" type="button">Change URL now</button>
-  <p id="status" aria-live="polite">Current interval: 1000 ms (1 second). Minimum: 250 ms. URL changes do not request a new page.</p>
+  <p id="status" aria-live="polite">Current interval: 50 ms (0.05 seconds). Minimum: 50 ms. Browser limits can slow updates.</p>
 </main>
 <script>
 (() => {
   let timerId = null;
-  let intervalMs = 1000;
+  let intervalMs = 50;
   let retryDelay = intervalMs;
   let path = "aaa";
 
@@ -87,19 +87,19 @@
   }
 
   function setIntervalMs(value) {
-    intervalMs = Math.min(60000, Math.max(250, Math.round(value)));
+    intervalMs = Math.min(60000, Math.max(50, Math.round(value)));
     retryDelay = intervalMs;
     document.getElementById("interval").value = String(intervalMs);
     document.getElementById("status").textContent =
       "Current interval: " + intervalMs + " ms (" + (intervalMs / 1000) +
-      " seconds). URL changes do not request a new page.";
+      " seconds). Browser limits can slow updates.";
     schedule(intervalMs);
   }
 
   document.getElementById("apply").addEventListener("click", () => {
     const field = document.getElementById("interval");
     if (field.value.trim() === "" || !Number.isFinite(Number(field.value))) {
-      document.getElementById("status").textContent = "Enter a valid interval from 250 to 60000 ms.";
+      document.getElementById("status").textContent = "Enter a valid interval from 50 to 60000 ms.";
       return;
     }
     setIntervalMs(Number(field.value));
