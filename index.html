@@ -26,6 +26,7 @@
   }
   input { min-width: 0; width: 100%; background: #222; color: #fff; }
   button { background: #f5f5f5; color: #111; cursor: pointer; }
+  .manual { margin-top: 10px; width: 100%; }
   p { color: #bbb; font-size: 14px; }
 </style>
 </head>
@@ -36,6 +37,7 @@
     <input id="interval" type="number" min="50" max="60000" step="10" value="50" inputmode="numeric">
     <button id="apply" type="button">Apply</button>
   </div>
+  <button class="manual" id="manual" type="button">Change URL now</button>
   <p id="status" aria-live="polite">Current interval: 50 ms (0.05 seconds). Minimum: 50 ms.</p>
 </main>
 <script>
@@ -57,21 +59,25 @@
     return "a" + chars.join("");
   }
 
+  function changePath() {
+    try {
+      history.replaceState(null, "", "/" + path);
+      const changedTo = path;
+      path = nextPath(path);
+      retryDelay = intervalMs;
+      return changedTo;
+    } catch (_) {
+      retryDelay = Math.min(1000, Math.max(intervalMs, retryDelay * 2));
+      return null;
+    }
+  }
+
   function tick() {
     if (document.hidden) {
       timerId = setTimeout(tick, intervalMs);
       return;
     }
-
-    try {
-      history.replaceState(null, "", "/" + path);
-      path = nextPath(path);
-      retryDelay = intervalMs;
-    } catch (_) {
-      // Back off when the browser rate-limits history updates.
-      retryDelay = Math.min(1000, Math.max(intervalMs, retryDelay * 2));
-    }
-
+    changePath();
     timerId = setTimeout(tick, retryDelay);
   }
 
@@ -95,6 +101,13 @@
       return;
     }
     setIntervalMs(Number(field.value));
+  });
+
+  document.getElementById("manual").addEventListener("click", () => {
+    const changedTo = changePath();
+    document.getElementById("status").textContent = changedTo
+      ? "Manually changed URL to /" + changedTo + ". Automatic updates are still enabled."
+      : "The browser blocked this URL change. Try again in a moment.";
   });
 })();
 </script>
