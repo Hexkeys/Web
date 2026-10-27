@@ -38,38 +38,26 @@
     <button id="apply" type="button">Apply</button>
   </div>
   <button class="manual" id="manual" type="button">Add history entry now</button>
-  <p id="status" aria-live="polite">Current interval: 25 ms (0.025 seconds). Browsers may throttle rapid history updates.</p>
+  <p id="status" aria-live="polite">Current interval: 25 ms (0.025 seconds). Each entry gets a random value.</p>
 </main>
 <script>
 (() => {
   let timerId = null;
   let intervalMs = 25;
-  let retryDelay = intervalMs;
-  let path = "aaa";
 
-  function nextPath(value) {
-    const chars = value.split("");
-    for (let i = chars.length - 1; i >= 0; i--) {
-      if (chars[i] !== "z") {
-        chars[i] = String.fromCharCode(chars[i].charCodeAt(0) + 1);
-        return chars.join("");
-      }
-      chars[i] = "a";
-    }
-    return "a" + chars.join("");
+  function randomValue() {
+    return Math.random().toString(36).slice(2, 10);
   }
 
   function addHistoryEntry() {
+    const entry = randomValue();
     try {
-      const entry = path;
       const url = new URL(window.location.href);
       url.searchParams.set("p", entry);
-      history.pushState({ sequence: entry }, "", url.pathname + url.search + url.hash);
-      path = nextPath(path);
-      retryDelay = intervalMs;
+      history.pushState({ value: entry }, "", url.pathname + url.search + url.hash);
       return entry;
     } catch (_) {
-      retryDelay = Math.min(10000, Math.max(intervalMs, retryDelay * 2));
+      // Keep automatic scheduling running if the browser rejects an entry.
       return null;
     }
   }
@@ -84,16 +72,15 @@
     timerId = null;
     if (document.hidden) return;
     addHistoryEntry();
-    schedule(retryDelay);
+    schedule(intervalMs);
   }
 
   function setIntervalMs(value) {
     intervalMs = Math.min(60000, Math.max(25, Math.round(value)));
-    retryDelay = intervalMs;
     document.getElementById("interval").value = String(intervalMs);
     document.getElementById("status").textContent =
       "Current interval: " + intervalMs + " ms (" + (intervalMs / 1000) +
-      " seconds). Browsers may throttle rapid history updates.";
+      " seconds). Each entry gets a random value.";
     schedule(intervalMs);
   }
 
@@ -108,9 +95,10 @@
 
   document.getElementById("manual").addEventListener("click", () => {
     const entry = addHistoryEntry();
-    document.getElementById("status").textContent = entry
-      ? "Added history entry ?p=" + entry + ". Automatic updates are still enabled."
-      : "The browser blocked this history entry. Try again in a moment.";
+    if (entry) {
+      document.getElementById("status").textContent =
+        "Added history entry with random value: " + entry;
+    }
   });
 
   document.addEventListener("visibilitychange", () => {
